@@ -11,11 +11,9 @@ We present a new deep learning training framework for forecasting signif- icant 
 Results and methodology are presented in the following paper:
 
 Minuzzi, F., Farina, L. - A deep learning approach to predict significant wave height using long short-term memory, 
-*preprint submitted to Ocean Modelling* (2022)
+*preprint submitted to Ocean Modelling* (2022) [https://arxiv.org/abs/2201.00356](https://github.com/dbader/)
 
 Please cite this when using it.
-
-
 
 ## Meta
 
