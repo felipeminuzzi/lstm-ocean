@@ -4,7 +4,8 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import tensorflow as tf
 import time
-import multiprocessing as mp
+from joblib import Parallel, delayed
+from tqdm import tqdm
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -99,7 +100,7 @@ def compile_and_fit(model, X, y, patience=20):
     history                  = model.fit(
         X,
         y,
-        epochs               = 1,
+        epochs               = 200,
         validation_split     = 0.2,
         callbacks            = [early_stopping],
         verbose              = 1
@@ -209,35 +210,36 @@ def future_predict(lead, df, npredict, forecast, num_features):
     result.to_csv(f'lstm_predictions_{lead}_leadtime.csv')
     plot(result,error,lead,mape_model) 
 
+def dispatch(x, data_era, add_step, lead_time, forecast, npredict):
+
+    df_train     = create_train_dataset(x, data_era, add_step)
+    num_features = df_train.shape[1] - 1
+    breakpoint()
+
+    for lead in lead_time:
+        future_predict(lead, df_train, npredict, forecast, num_features)
         
+                
 path         = '/Users/felipeminuzzi/Documents/OCEANO/Simulations/Machine_Learning/era5_reanalysis_utlimos_dados.nc'
 data_era     = xr.open_dataset(path)
 lats         = data_era.latitude.values
 longs        = data_era.longitude.values
 ni           = len(longs)
 nj           = len(lats)
-# rg_lat      = -31.53
-# rg_long     = -49.86
 add_step     = 0.5     
+lead_time    = [0,6,12,18,24]
+forecast     = 12
+npredict     = 744
 
 yv, xv       = np.meshgrid(lats, longs)
 df_latlong   = pd.DataFrame(dict(long=xv.ravel(), lat=yv.ravel()))
 lst_latlong  = df_latlong.values
 
-for x in lst_latlong:
-    df_train     = create_train_dataset(x, data_era, add_step)
+start                        = time.time()
+Parallel(n_jobs=-1,backend='multiprocessing')(delayed(dispatch)(x, data_era, add_step, lead_time, 
+                                                                forecast, npredict) for x in tqdm(lst_latlong, desc='2D prediction...'))    
+end                          = time.time()
 
-    lead_time    = [0,6,12,18,24]
-    forecast     = 12
-    num_features = df_train.shape[1] - 1
-    npredict     = 744
-
-    start                        = time.time()
-    for lead in lead_time:
-        future_predict(lead, df_train, npredict, forecast, num_features)
-        breakpoint()
-        
-    end                          = time.time()
 
 print('Time of execution: ',(end-start)/60, ' minutes.')
 print('###############################################')
