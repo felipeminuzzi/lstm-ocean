@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -61,6 +62,18 @@ def erro(y_true, y_pred):
     y_true, y_pred = np.array(y_true), np.array(y_pred)
     return np.abs((y_true - y_pred)/y_true)*100
 
+def format_path(path):
+    """""Formats the path string in order to avoid conflicts."""
+
+    if path[-1]!='/':
+        path = path + '/'
+
+    if not os.path.exists(path):
+        os.makedirs(path)
+
+    return path
+
+
 def split_sequence(sequence, sequence2, n_steps_in, lead_time):
     X, y = [], []
     m = len(sequence) - lead_time
@@ -100,7 +113,7 @@ def compile_and_fit(model, X, y, patience=20):
     history                  = model.fit(
         X,
         y,
-        epochs               = 200,
+        epochs               = 50,
         validation_split     = 0.2,
         callbacks            = [early_stopping],
         verbose              = 1
@@ -112,22 +125,22 @@ def prediction(model, data_in, n_steps_in, num_features):
     predict                      = model.predict(x_predict)
     return predict[0,0]
 
-def plot(df,error,lead, mape_value):
+def plot(df,error,lead, mape_value, path, id):
     plt.figure(1)
     plt.plot(df['Data'], df['Hs Reanalysis Value'], 'r-', label='Label (dado real)')
-    plt.plot(df['Data'], df['Hs Predict Value'], 'b-', label='Previsão')
+    plt.plot(df['Data'], df['Hs Predict Value'], 'b--', label='Previsão')
     plt.xlabel('Data')
     plt.ylabel('Wave height (Hs)')
     plt.legend()
     plt.title(f'Previsão de altura de onda para lead time {lead}. MAPE: {mape_value}')
-    plt.savefig(f'lstm_predicts_{lead}_leadtime.png', bbox_inches='tight')
+    plt.savefig(path + f'lstm_predicts_lat{id[1]}_long{id[0]}_lead{lead}.png', bbox_inches='tight')
 
     plt.figure(2)
     plt.plot(df['Data'], error, 'r-')
     plt.xlabel('Data')
     plt.ylabel('Absolute error')
     plt.title(f'Erro absoluto para lead time {lead}. MAPE: {mape_value}')
-    plt.savefig(f'lstm_erro_{lead}_leadtime.png', bbox_inches='tight')
+    plt.savefig(path + f'lstm_erro_lat{id[1]}_long{id[0]}_lead{lead}.png', bbox_inches='tight')
 
 def plot_future(df,mape_value):
     plt.figure(1)
@@ -183,7 +196,7 @@ def create_train_test(df, npredict, lead, tgt = 'Hs'):
     
     return inputs, target, x_input, target_predict
 
-def future_predict(lead, df, npredict, forecast, num_features):
+def future_predict(lead, df, npredict, forecast, num_features, path, id):
 
     train_input, train_target, test_input, test_target    = create_train_test(df, npredict, lead)
     x_train, y_train                                      = split_sequence(train_input, train_target, forecast, lead)
@@ -207,27 +220,30 @@ def future_predict(lead, df, npredict, forecast, num_features):
     error                = erro(result['Hs Reanalysis Value'], result['Hs Predict Value'])
     
     print(f'MAPE for lead time {lead}: {mape_model}')
-    result.to_csv(f'lstm_predictions_{lead}_leadtime.csv')
-    plot(result,error,lead,mape_model) 
+    result.to_csv(path + f'lstm_predictions_lat{id[1]}_long{id[0]}_lead{lead}.csv')
+    plot(result,error,lead,mape_model, path, id) 
 
-def dispatch(x, data_era, add_step, lead_time, forecast, npredict):
-
-    df_train     = create_train_dataset(x, data_era, add_step)
-    num_features = df_train.shape[1] - 1
-    breakpoint()
+def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path):
 
     for lead in lead_time:
-        future_predict(lead, df_train, npredict, forecast, num_features)
+        df_train     = create_train_dataset(x, data_era, add_step)
+        df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
         
-                
-path         = '/Users/felipeminuzzi/Documents/OCEANO/Simulations/Machine_Learning/era5_reanalysis_utlimos_dados.nc'
+        num_features = df_train.shape[1] - 1        
+
+        future_predict(lead, df_train, npredict, forecast, num_features, path, x)
+        
+root_path    = os.getcwd()             
+path         = root_path + '/era5_reanalysis_utlimos_dados.nc'
+save_path    = format_path(root_path + '/2D_results/')
+
 data_era     = xr.open_dataset(path)
 lats         = data_era.latitude.values
 longs        = data_era.longitude.values
 ni           = len(longs)
 nj           = len(lats)
 add_step     = 0.5     
-lead_time    = [0,6,12,18,24]
+lead_time    = [0]
 forecast     = 12
 npredict     = 744
 
@@ -236,8 +252,8 @@ df_latlong   = pd.DataFrame(dict(long=xv.ravel(), lat=yv.ravel()))
 lst_latlong  = df_latlong.values
 
 start                        = time.time()
-Parallel(n_jobs=-1,backend='multiprocessing')(delayed(dispatch)(x, data_era, add_step, lead_time, 
-                                                                forecast, npredict) for x in tqdm(lst_latlong, desc='2D prediction...'))    
+Parallel(n_jobs=1,backend='multiprocessing')(delayed(dispatch)(x, data_era, add_step, lead_time, 
+                                                                forecast, npredict, save_path) for x in tqdm(lst_latlong, desc='2D prediction...'))    
 end                          = time.time()
 
 
