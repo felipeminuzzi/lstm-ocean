@@ -232,6 +232,7 @@ def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path):
         num_features = df_train.shape[1] - 1        
 
         future_predict(lead, df_train, npredict, forecast, num_features, path, x)
+        plt.close('all')
         
 root_path    = os.getcwd()             
 path         = root_path + '/era5_reanalysis_utlimos_dados.nc'
