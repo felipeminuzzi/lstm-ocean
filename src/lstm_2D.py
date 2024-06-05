@@ -153,7 +153,7 @@ def plot_future(df,mape_value):
 
 def get_model(num_prev, forecast, num_features):
     modelo             = tf.keras.Sequential([
-        tf.keras.layers.LSTM(256,  activation='relu', return_sequences=True, input_shape=(forecast, num_features)),
+        #tf.keras.layers.LSTM(256,  activation='relu', return_sequences=True, input_shape=(forecast, num_features)),
         tf.keras.layers.LSTM(128, activation='relu', return_sequences=True, input_shape=(forecast, num_features)),
         tf.keras.layers.LSTM(64,  activation='relu', return_sequences=True, input_shape=(forecast, num_features)),
         tf.keras.layers.LSTM(48,  activation='relu', return_sequences=True, input_shape=(forecast, num_features)),
@@ -196,7 +196,7 @@ def create_train_test(df, npredict, lead, tgt = 'Hs'):
     
     return inputs, target, x_input, target_predict
 
-def future_predict(lead, df, npredict, forecast, num_features, path, id):
+def future_predict(lead, df, npredict, forecast, num_features, path, id, flag):
 
     train_input, train_target, test_input, test_target    = create_train_test(df, npredict, lead)
     x_train, y_train                                      = split_sequence(train_input, train_target, forecast, lead)
@@ -205,38 +205,57 @@ def future_predict(lead, df, npredict, forecast, num_features, path, id):
     x_test, y_test                                        = split_sequence(test_input, test_target, forecast, lead)
     x_in, labels                                          = prepare_data(x_test, y_test, num_features)
     
-    model                    = get_model(1, forecast, num_features)
-    history                  = compile_and_fit(model, X, y)
+    if flag:
+        model                                             = get_model(1, forecast, num_features)
+    else:
+        model                                             = get_model(len(x_in), forecast, num_features)
+    history                                               = compile_and_fit(model, X, y)
+    mape_val                                              = history.history['val_mean_squared_error'][-1]
+    print(f'Validation error of last epoch: {mape_val}')
     
-    result                   = pd.DataFrame()
-    result['Data']           = test_target.index[-len(labels):]
-    result['Hs Reanalysis Value'] = y_test
+    result                                                = pd.DataFrame()
+    result['Data']                                        = test_target.index[-len(labels):]
+    result['Hs Reanalysis Value']                         = y_test
     
-    predictions              = []
-    predictions              = [prediction(model, dado, forecast, num_features) for dado in x_in]
-    result['Hs Predict Value'] = predictions
+    if flag:    
+        predictions                                       = []
+        predictions                                       = [prediction(model, dado, forecast, num_features) for dado in x_in]
+        result['Hs Predict Value']                        = predictions
+    else:
+        n                                                 = int(npredict - len(x_in))
+        x_predict                                         = test_input[n:].reshape(1, len(x_in), num_features)
+        predict                                           = model.predict(x_predict)
+        result['Hs Predict Value']                        = predict[0,:]
+        lead                                              = 'future'
     
-    mape_model           = mape(result['Hs Reanalysis Value'], result['Hs Predict Value'])
-    error                = erro(result['Hs Reanalysis Value'], result['Hs Predict Value'])
+    mape_model                                            = mape(result['Hs Reanalysis Value'], result['Hs Predict Value'])
+    error                                                 = erro(result['Hs Reanalysis Value'], result['Hs Predict Value'])
     
     print(f'MAPE for lead time {lead}: {mape_model}')
     result.to_csv(path + f'lstm_predictions_lat{id[1]}_long{id[0]}_lead{lead}.csv')
     plot(result,error,lead,mape_model, path, id) 
 
-def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path):
-
+def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
+    
     for lead in lead_time:
+
         df_train     = create_train_dataset(x, data_era, add_step)
         df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
         
-        num_features = df_train.shape[1] - 1        
+        num_features = df_train.shape[1] - 1  
 
-        future_predict(lead, df_train, npredict, forecast, num_features, path, x)
-        plt.close('all')
+        if flag:
+            future_predict(lead, df_train, npredict, forecast, num_features, path, x, flag)
+            plt.close('all')
+        else:
+            future_predict(0, df_train, npredict, forecast, num_features, path, x, flag)
+            plt.close('all')
+            break
         
 root_path    = os.getcwd()             
 path         = root_path + '/era5_reanalysis_utlimos_dados.nc'
 save_path    = format_path(root_path + '/2D_results/')
+lead_or_not  = False     #true com lead, false sem lead (futuro)
 
 data_era     = xr.open_dataset(path)
 lats         = data_era.latitude.values
@@ -244,7 +263,7 @@ longs        = data_era.longitude.values
 ni           = len(longs)
 nj           = len(lats)
 add_step     = 0.5     
-lead_time    = [0]
+lead_time    = [6,12]
 forecast     = 12
 npredict     = 744
 
@@ -254,8 +273,9 @@ lst_latlong  = df_latlong.values
 
 start                        = time.time()
 Parallel(n_jobs=1,backend='multiprocessing')(delayed(dispatch)(x, data_era, add_step, lead_time, 
-                                                                forecast, npredict, save_path) for x in tqdm(lst_latlong, desc='2D prediction...'))    
+                                                            forecast, npredict, save_path, lead_or_not) for x in tqdm(lst_latlong, desc='2D prediction...'))    
 end                          = time.time()
+
 
 
 print('Time of execution: ',(end-start)/60, ' minutes.')
