@@ -238,12 +238,13 @@ def future_predict(lead, df, npredict, forecast, num_features, path, id, flag):
 def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
     
     for lead in lead_time:
-
+        x = lst_latlong[18]
         df_train     = create_train_dataset(x, data_era, add_step)
         df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
+        df_train     = df_train.fillna(method='bfill')
         
         num_features = df_train.shape[1] - 1  
-
+        
         if flag:
             future_predict(lead, df_train, npredict, forecast, num_features, path, x, flag)
             plt.close('all')
@@ -255,7 +256,7 @@ def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
 root_path    = os.getcwd()             
 path         = root_path + '/era5_reanalysis_utlimos_dados.nc'
 save_path    = format_path(root_path + '/2D_results/')
-lead_or_not  = False     #true com lead, false sem lead (futuro)
+lead_or_not  = True     #true com lead, false sem lead (futuro)
 
 data_era     = xr.open_dataset(path)
 lats         = data_era.latitude.values
@@ -263,7 +264,7 @@ longs        = data_era.longitude.values
 ni           = len(longs)
 nj           = len(lats)
 add_step     = 0.5     
-lead_time    = [6,12]
+lead_time    = [0,6,12,18,24]
 forecast     = 12
 npredict     = 744
 
