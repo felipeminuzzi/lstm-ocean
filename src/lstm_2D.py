@@ -238,7 +238,7 @@ def future_predict(lead, df, npredict, forecast, num_features, path, id, flag):
 def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
     
     for lead in lead_time:
-        x = lst_latlong[18]
+        
         df_train     = create_train_dataset(x, data_era, add_step)
         df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
         df_train     = df_train.fillna(method='bfill')
