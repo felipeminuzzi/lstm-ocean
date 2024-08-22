@@ -1,14 +1,17 @@
 import xarray as xr 
 import numpy as np 
 import pandas as pd
+from mpl_toolkits.basemap import Basemap
 import matplotlib.pyplot as plt
+from matplotlib.colors import BoundaryNorm
+from matplotlib.colors import LinearSegmentedColormap 
 import csv
 import sys
 
 fn1  = xr.open_dataset(sys.argv[1])
 
-lat     = fn1.latitude.values
-lon     = fn1.longitude.values
+lati    = fn1.latitude.values
+long    = fn1.longitude.values
 swh     = fn1.swh.values
 # dwi     = fn1.dwi.values
 # wind    = fn1.wind.values
@@ -65,6 +68,42 @@ def get_data(dataset, lat, lon):
     rg_rea      = rg_rea.set_index('time')
     return rg_rea
 
+def plot2map(lon, lat, dados, flag):
+    # Aqui, definimos um objeto basemap com a projeção "cyl".
+    # llcrnrlon: longitude lower left corner
+    # llcrnrlat: latitude lower left corner
+    # urcrnrlon: longitude upper right corner
+    # urcrnrlat: latitude upper right corner
+    # resolution='c': pior resolução. 'h' é a melhor, mas demora mais para carregar
+    # ax: axis a ser plotado
+    map = Basemap(projection='cyl', llcrnrlon=lon.min(), 
+                  llcrnrlat=lat.min(), urcrnrlon=lon.max(), 
+                  urcrnrlat=lat.max(), resolution='f')
+    
+    map.fillcontinents(color=(0.55, 0.55, 0.55))
+
+    map.drawcoastlines(color=(0.3, 0.3, 0.3))
+
+    map.drawstates(color=(0.3, 0.3, 0.3))
+    
+    map.drawparallels(np.linspace(lat.min(), lat.max(), 6), labels=[1,0,0,0],
+                      rotation=90, dashes=[1, 2], color=(0.3, 0.3, 0.3))
+    map.drawmeridians(np.linspace(lon.min(), lon.max(), 6), labels=[0,0,0,1], 
+                      dashes=[1, 2], color=(0.3, 0.3, 0.3))
+
+    llons, llats = np.meshgrid(lon, lat)
+
+    lons, lats = map(lon, lat)
+    
+    if flag:
+        m = map.contourf(llons, llats, dados)
+        plt.colorbar(m, spacing='uniform')
+    else: 
+        m = map.bluemarble()
+    # map.scatter([-49.50,-47.15, -42.44, -39.41, -34.33, -38.25], 
+    #             [-31.33,-27.24, -25.30, -19.55, -8.09, -3.12], marker = 'o', color='r', zorder=5, s=150)
+    return m
+
 # #lat/long do ondografo de rio grande: 
 # #riogrande   = junto.sel(latitude=-31.53, longitude=-49.86, method='nearest')
 # #rg_rea      = junto.sel(latitude=-31.53, longitude=-49.86, method='nearest')
@@ -86,8 +125,8 @@ def get_data(dataset, lat, lon):
 # temp   = 0
 # graph(wind)
 # #to_csv_ensemble(swh,0)
-    
-graph(swh,0)
+
+plot2map(long,lati,swh[-1],True)
 plt.show()
 
 
