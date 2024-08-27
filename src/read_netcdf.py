@@ -68,7 +68,7 @@ def get_data(dataset, lat, lon):
     rg_rea      = rg_rea.set_index('time')
     return rg_rea
 
-def plot2map(lon, lat, dados, flag):
+def plot2map(lon, lat, dados):
     # Aqui, definimos um objeto basemap com a projeção "cyl".
     # llcrnrlon: longitude lower left corner
     # llcrnrlat: latitude lower left corner
@@ -78,7 +78,7 @@ def plot2map(lon, lat, dados, flag):
     # ax: axis a ser plotado
     map = Basemap(projection='cyl', llcrnrlon=lon.min(), 
                   llcrnrlat=lat.min(), urcrnrlon=lon.max(), 
-                  urcrnrlat=lat.max(), resolution='f')
+                  urcrnrlat=lat.max(), resolution='h')
     
     map.fillcontinents(color=(0.55, 0.55, 0.55))
 
@@ -95,13 +95,9 @@ def plot2map(lon, lat, dados, flag):
 
     lons, lats = map(lon, lat)
     
-    if flag:
-        m = map.contourf(llons, llats, dados)
-        plt.colorbar(m, spacing='uniform')
-    else: 
-        m = map.bluemarble()
-    # map.scatter([-49.50,-47.15, -42.44, -39.41, -34.33, -38.25], 
-    #             [-31.33,-27.24, -25.30, -19.55, -8.09, -3.12], marker = 'o', color='r', zorder=5, s=150)
+    m = map.contourf(llons, llats, dados)
+    plt.colorbar(m)
+
     return m
 
 # #lat/long do ondografo de rio grande: 
@@ -126,7 +122,7 @@ def plot2map(lon, lat, dados, flag):
 # graph(wind)
 # #to_csv_ensemble(swh,0)
 
-plot2map(long,lati,swh[-1],True)
+plot2map(long,lati,swh[-1])
 plt.show()
 
 
