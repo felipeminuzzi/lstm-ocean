@@ -242,6 +242,7 @@ def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
         df_train     = create_train_dataset(x, data_era, add_step)
         df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
         df_train     = df_train.fillna(method='bfill')
+        breakpoint()
         
         num_features = df_train.shape[1] - 1  
         
@@ -254,7 +255,7 @@ def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
             break
         
 root_path    = os.getcwd()             
-path         = root_path + '/era5_reanalysis_utlimos_dados.nc'
+path         = root_path + '/era5_reanalysis_until_mar2021.nc'
 save_path    = format_path(root_path + '/2D_results/')
 lead_or_not  = True     #true com lead, false sem lead (futuro)
 

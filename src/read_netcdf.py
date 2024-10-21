@@ -9,18 +9,23 @@ import csv
 import sys
 
 fn1  = xr.open_dataset(sys.argv[1])
-
+# fn2  = xr.open_dataset(sys.argv[2])
+# fn3  = xr.open_dataset(sys.argv[3])
+# fn4  = xr.open_dataset(sys.argv[4])
 lati    = fn1.latitude.values
 long    = fn1.longitude.values
-swh     = fn1.swh.values
-# dwi     = fn1.dwi.values
-# wind    = fn1.wind.values
-# pp1d    = fn1.pp1d.values
-#print(fn1.variables)
-# print(fn3.var)
-# junto = xr.concat((fn1,fn2,fn3), dim='time')
+
+swh  = fn1.swh.values
+per = fn1.pp1d.values
+u10 = fn1.u10.values
+v10 = fn1.v10.values
+
+# junto = xr.merge([fn1,fn2], join='inner')
+# junto.to_netcdf('/Users/felipeminuzzi/Documents/OCEANO/Simulations/ERA5_data/files/combined_2013_2014_2015.nc')
+
+# junto = xr.concat((fn1,fn2,fn3,fn4), dim='valid_time')
 # print(junto)
-# junto.to_netcdf('era20_ensemble_2010_2018.nc')
+# junto.to_netcdf('/Users/felipeminuzzi/Documents/OCEANO/Simulations/ERA5_data/files/era5_full_2013_2019.nc')
 
 def to_csv(var_name):
     with open('data.csv', 'w', newline='') as file:
@@ -58,14 +63,14 @@ def get_data(dataset, lat, lon):
     rg_long     = lon
     latlon      = dataset.sel(latitude=rg_lat, longitude=rg_long, method='nearest')
     rg_rea      = pd.DataFrame({
-        'time'      : pd.to_datetime(dataset.time.values),
+        'valid_time': pd.to_datetime(dataset.valid_time.values),
         'Hs'        : latlon.swh.values,
-        # '10m-direc' : latlon.dwi.values,
-        # '10m-speed' : latlon.wind.values,
-        # 'Period'    : latlon.pp1d.values
+        '10m-direc' : latlon.u10.values,
+        '10m-speed' : latlon.v10.values,
+        'Period'    : latlon.pp1d.values
      })
-    rg_rea      = rg_rea.sort_values(by='time', ignore_index=True)
-    rg_rea      = rg_rea.set_index('time')
+    rg_rea      = rg_rea.sort_values(by='valid_time', ignore_index=True)
+    rg_rea      = rg_rea.set_index('valid_time')
     return rg_rea
 
 def plot2map(lon, lat, dados):
@@ -122,7 +127,16 @@ def plot2map(lon, lat, dados):
 # graph(wind)
 # #to_csv_ensemble(swh,0)
 
+#plot2map(long,lati,swh[-1])
+plt.figure(1)
+plt.subplot(221)
 plot2map(long,lati,swh[-1])
+plt.subplot(222)
+plot2map(long,lati,per[-1])
+plt.subplot(223)
+plot2map(long,lati,u10[-1])
+plt.subplot(224)
+plot2map(long,lati,v10[-1])
 plt.show()
 
 
