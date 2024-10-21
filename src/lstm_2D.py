@@ -16,10 +16,10 @@ def get_data(dataset, lat, lon):
     rg_long     = lon
     latlon      = dataset.sel(latitude=rg_lat, longitude=rg_long, method=None)
     rg_rea      = pd.DataFrame({
-        'time'      : pd.to_datetime(dataset.time.values),
+        'time'      : pd.to_datetime(dataset.valid_time.values),
         'Hs'        : latlon.swh.values,
-        '10m-direc' : latlon.dwi.values,
-        '10m-speed' : latlon.wind.values,
+        '10m-direc' : latlon.u10.values,
+        '10m-speed' : latlon.v10.values,
         'Period'    : latlon.pp1d.values
     })
     rg_rea      = rg_rea.set_index('time')
@@ -238,12 +238,18 @@ def future_predict(lead, df, npredict, forecast, num_features, path, id, flag):
 def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
     
     for lead in lead_time:
-        
+
         df_train     = create_train_dataset(x, data_era, add_step)
-        df_train     = df_train.loc[df_train.index >= pd.to_datetime('2017-02-01')]
+        df_train     = df_train.loc[df_train.index >= pd.to_datetime('2013-02-01')]
         df_train     = df_train.fillna(method='bfill')
-        breakpoint()
+
+        if np.isnan(df_train['Hs'][0]):
+            df_nan   = df_train['Hs'][-(npredict):].astype(str)
+            print(f'Lat: {x[1]} and Lon: {x[0]} are NaN values')
+            df_nan.to_csv(path + f'lstm_predictions_lat{x[1]}_long{x[0]}_lead{lead}.csv')
+            break
         
+        df_train     = df_train.dropna(axis=1, how='all')
         num_features = df_train.shape[1] - 1  
         
         if flag:
@@ -255,7 +261,7 @@ def dispatch(x, data_era, add_step, lead_time, forecast, npredict, path, flag):
             break
         
 root_path    = os.getcwd()             
-path         = root_path + '/era5_reanalysis_until_mar2021.nc'
+path         = root_path + '/era5_full_2013_2019.nc'
 save_path    = format_path(root_path + '/2D_results/')
 lead_or_not  = True     #true com lead, false sem lead (futuro)
 
