@@ -127,17 +127,18 @@ def plot2map(lon, lat, dados):
 # graph(wind)
 # #to_csv_ensemble(swh,0)
 
-#plot2map(long,lati,swh[-1])
-plt.figure(1)
-plt.subplot(221)
 plot2map(long,lati,swh[-1])
-plt.subplot(222)
-plot2map(long,lati,per[-1])
-plt.subplot(223)
-plot2map(long,lati,u10[-1])
-plt.subplot(224)
-plot2map(long,lati,v10[-1])
 plt.show()
+# plt.figure(1)
+# plt.subplot(221)
+# plot2map(long,lati,swh[-1])
+# plt.subplot(222)
+# plot2map(long,lati,per[-1])
+# plt.subplot(223)
+# plot2map(long,lati,u10[-1])
+# plt.subplot(224)
+# plot2map(long,lati,v10[-1])
+# plt.show()
 
 
 
